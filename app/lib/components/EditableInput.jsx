@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { RIEInput } from 'riek';
+import { RIEInput } from '@attently/riek';
 
 export default class EditableInput extends React.Component
 {

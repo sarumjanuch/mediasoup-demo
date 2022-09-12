@@ -31,12 +31,12 @@
     "react-dropzone": "^10.2.1",
     "react-redux": "^7.2.0",
     "react-spinner": "^0.2.7",
-    "react-tooltip": "^3.11.1",
+    "react-tooltip": "^4.2.21",
     "react-transition-group": "^4.3.0",
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
     "redux-thunk": "^2.3.0",
-    "riek": "^1.1.0",
+    "riek": "@attently/riek",
     "url-parse": "^1.4.7"
   },
   "devDependencies": {
