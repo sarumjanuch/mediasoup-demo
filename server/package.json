@@ -12,19 +12,21 @@
     "connect": "node connect.js"
   },
   "dependencies": {
-    "@sitespeed.io/throttle": "^0.5.4",
-    "awaitqueue": "^2.3.3",
-    "body-parser": "^1.19.0",
+    "@sitespeed.io/throttle": "^5.0.0",
+    "asciichart": "^1.5.25",
+    "awaitqueue": "^2.4.0",
+    "body-parser": "^1.20.0",
     "colors": "^1.4.0",
-    "debug": "^4.3.1",
-    "express": "^4.17.1",
+    "debug": "^4.3.4",
+    "express": "^4.18.1",
     "heapdump": "^0.3.15",
     "mediasoup": "github:versatica/mediasoup#v3",
-    "pidusage": "^2.0.21",
-    "protoo-server": "^4.0.5"
+    "pidusage": "^3.0.0",
+    "protoo-server": "^4.0.6",
+    "splunk-logging": "^0.11.1"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
+    "eslint": "^8.19.0",
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
     "gulp-plumber": "^1.2.1"

@@ -1,11 +1,19 @@
 const EventEmitter = require('events').EventEmitter;
 const protoo = require('protoo-server');
-const throttle = require('@sitespeed.io/throttle');
+
 const Logger = require('./Logger');
 const config = require('../config');
 const Bot = require('./Bot');
 
 const logger = new Logger('Room');
+
+const SplunkLogger = require('splunk-logging').Logger;
+
+const splunkConfig = {
+	token : 'e8db2c33-4ee2-4aa1-a184-936cf8d6baae',
+	url   : 'http://192.168.88.51:8088'
+
+};
 
 /**
  * Room class.
@@ -121,6 +129,8 @@ class Room extends EventEmitter
 		// Handle audioLevelObserver.
 		this._handleAudioLevelObserver();
 
+		this.splunk = new SplunkLogger(splunkConfig);
+
 		// For debugging.
 		global.audioLevelObserver = this._audioLevelObserver;
 		global.bot = this._bot;
@@ -150,8 +160,7 @@ class Room extends EventEmitter
 		// Stop network throttling.
 		if (this._networkThrottled)
 		{
-			throttle.stop({})
-				.catch(() => {});
+			// throttle.stop({}).catch(() => {});
 		}
 	}
 
@@ -991,6 +1000,27 @@ class Room extends EventEmitter
 								availableBitrate        : trace.info.availableBitrate
 							})
 							.catch(() => {});
+
+						const payload = {
+							message : {
+								timestamp        : Date.now(),
+								transportId      : transport.id, 
+								availableBitrate : trace.info.availableBitrate
+							}
+						};
+
+						this.splunk.send(payload, (err, resp, body) =>
+						{
+							logger.debug(body);
+							if (err)
+							{
+								logger.error('Failed to put data into Splunk');
+							}
+
+						});
+
+						// eslint-disable-next-line max-len
+						// this._bweLog.writeLog(Date.now(), transport.id, trace.info.availableBitrate);
 					}
 				});
 
@@ -1473,12 +1503,14 @@ class Room extends EventEmitter
 
 				try
 				{
+					/*
 					await throttle.start(
 						{
 							up   : uplink || DefaultUplink,
 							down : downlink || DefaultDownlink,
 							rtt  : rtt || DefaultRtt
 						});
+					*/
 
 					logger.warn(
 						'network throttle set [uplink:%s, downlink:%s, rtt:%s]',
@@ -1511,7 +1543,7 @@ class Room extends EventEmitter
 
 				try
 				{
-					await throttle.stop({});
+					// await throttle.stop({});
 
 					logger.warn('network throttle stopped');
 
@@ -1610,6 +1642,12 @@ class Room extends EventEmitter
 
 		// Store the Consumer into the protoo consumerPeer data Object.
 		consumerPeer.data.consumers.set(consumer.id, consumer);
+
+		/*
+		setInterval(() =>
+		{
+			consumer.requestKeyFrame();
+		}, 5000);*/
 
 		// Set Consumer events.
 		consumer.on('transportclose', () =>

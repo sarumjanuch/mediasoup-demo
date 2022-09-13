@@ -4,6 +4,7 @@ node_modules/
 !/server/config.example.js
 /server/public/
 /server/certs/
+/server/node_modules
 /server/mediasoup_valgrind_*
 
 /.vscode/
