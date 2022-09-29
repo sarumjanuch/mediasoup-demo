@@ -73,6 +73,7 @@ class Room extends EventEmitter
 			roomId,
 			protooRoom,
 			mediasoupRouter,
+			webRtcServer,
 			audioLevelObserver,
 			bot,
 			consumerReplicas
@@ -988,7 +989,7 @@ class Room extends EventEmitter
 				});
 
 				// NOTE: For testing.
-				// await transport.enableTraceEvent([ 'probation', 'bwe' ]);
+				//  await transport.enableTraceEvent([ 'probation', 'bwe' ]);
 				await transport.enableTraceEvent([ 'bwe' ]);
 
 				transport.on('trace', (trace) =>
@@ -1016,7 +1017,7 @@ class Room extends EventEmitter
 							}
 						};
 
-						this.splunk.send(payload, (err, resp, body) =>
+/*						this.splunk.send(payload, (err, resp, body) =>
 						{
 							logger.debug(body);
 							if (err)
@@ -1024,7 +1025,7 @@ class Room extends EventEmitter
 								logger.error('Failed to put data into Splunk');
 							}
 
-						});
+						});*/
 
 						// eslint-disable-next-line max-len
 						// this._bweLog.writeLog(Date.now(), transport.id, trace.info.availableBitrate);
@@ -1720,6 +1721,11 @@ class Room extends EventEmitter
 							'consumer "trace" event [producerId:%s, trace.type:%s, trace:%o]',
 							consumer.id, trace.type, trace);
 					});
+
+/*					setInterval(async () =>
+					{
+						await consumer.requestKeyFrame();
+					}, 7000);*/
 
 					// Send a protoo request to the remote Peer with Consumer parameters.
 					try
