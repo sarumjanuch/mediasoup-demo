@@ -4,8 +4,8 @@ const throttle = require('@sitespeed.io/throttle');
 const Logger = require('./Logger');
 const config = require('../config');
 const Bot = require('./Bot');
-
 const logger = new Logger('Room');
+const { CsvFileWriter } = require('./StatsObserver/CsvFileWriter');
 
 /**
  * Room class.
@@ -14,6 +14,7 @@ const logger = new Logger('Room');
  * a protoo Room (for signaling with WebSocket clients) and a mediasoup Router
  * (for sending and receiving media to/from those WebSocket peers).
  */
+
 class Room extends EventEmitter
 {
 	/**
@@ -71,7 +72,6 @@ class Room extends EventEmitter
 	{
 		super();
 
-		console.warn(`Room constructor. consumerReplicas:${consumerReplicas}`);
 		this.setMaxListeners(Infinity);
 
 		// Room id.
@@ -123,9 +123,39 @@ class Room extends EventEmitter
 		// Handle audioLevelObserver.
 		this._handleAudioLevelObserver();
 
+		this._statsSamplingInterval = setInterval(() =>
+		{
+			// this.sendBufferedLogs();
+		}, 5000);
+		this._statsBuffer = [];
+
 		// For debugging.
 		global.audioLevelObserver = this._audioLevelObserver;
 		global.bot = this._bot;
+	}
+
+	sendBufferedLogs()
+	{
+		if (!this._statsBuffer.length) return;
+
+		logger.debug('sending buffered logs, records count %i', this._statsBuffer.length);
+		fetch(`https://fluent.${process.env.ELK_DOMMAIN}/index/_bulk`, {
+			body    : JSON.stringify(this._statsBuffer),
+			headers : {
+				'Accept'       : 'application/json',
+				'Content-Type' : 'application/json',
+				'Authority'    : `fluent.${process.env.ELK_DOMMAIN}`,
+				'Origin'       : `https://${process.env.ELK_DOMMAIN}`,
+				'Referer'      : `https://${process.env.ELK_DOMMAIN}/`
+			},
+			method   : 'POST',
+			compress : true
+		}).catch((err) =>
+		{
+			logger.error(err);
+		});
+
+		this._statsBuffer.length = 0;
 	}
 
 	/**
@@ -155,6 +185,7 @@ class Room extends EventEmitter
 			throttle.stop({})
 				.catch(() => {});
 		}
+		clearInterval(this._statsSamplingInterval);
 	}
 
 	logStatus()
@@ -216,6 +247,7 @@ class Room extends EventEmitter
 		peer.data.consumers = new Map();
 		peer.data.dataProducers = new Map();
 		peer.data.dataConsumers = new Map();
+		peer.data.csvStatsWriters = new Map();
 
 		peer.on('request', (request, accept, reject) =>
 		{
@@ -969,13 +1001,13 @@ class Room extends EventEmitter
 
 				// NOTE: For testing.
 				// await transport.enableTraceEvent([ 'probation', 'bwe' ]);
-				await transport.enableTraceEvent([ 'bwe' ]);
+				await transport.enableTraceEvent([ 'bweStats' ]);
 
 				transport.on('trace', (trace) =>
 				{
-					logger.debug(
+					/*	logger.debug(
 						'transport "trace" event [transportId:%s, trace.type:%s, trace:%o]',
-						transport.id, trace.type, trace);
+						transport.id, trace.type, trace);*/
 
 					if (trace.type === 'bwe' && trace.direction === 'out')
 					{
@@ -988,10 +1020,31 @@ class Room extends EventEmitter
 							})
 							.catch(() => {});
 					}
+					else if (trace.type === 'bweStats')
+					{
+
+/*						trace.info.roomId = this._roomId;
+						trace.info.transportId = transport.id;
+						trace.info.labels = {
+							index : 'mediasoup-demo-bwe-test'
+						};
+						trace.info.timestamp = trace.timestamp;*/
+						//this._statsBuffer.push(trace.info);
+						const csvFileWriter = peer.data.csvStatsWriters.get(transport.id);
+
+						if (csvFileWriter)
+						{
+							csvFileWriter.logBweStats(trace);
+						}
+					}
 				});
 
 				// Store the WebRtcTransport into the protoo Peer data Object.
 				peer.data.transports.set(transport.id, transport);
+				peer.data.csvStatsWriters.set(
+					transport.id,
+					CsvFileWriter.create(this._roomId, transport.id)
+				);
 
 				accept(
 					{
